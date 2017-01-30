@@ -24,13 +24,13 @@ import getopt
 
 # Shadow JSON schema:
 #
-# Name: Bot
-# {
-#	"state": {
-#		"desired":{
-#			"motor":<INT VALUE>
-#		}
-#	}
+# Name: pandaDanceMotor
+ #{
+	#"state": {
+		#"desired":{
+			#"motor":<1 or 0>
+		#}
+	#}
 #}
 
 # Custom Shadow callback
@@ -68,11 +68,29 @@ def customShadowCallback_Delete(payload, responseStatus, token):
 	if responseStatus == "rejected":
 		print("Delete request " + token + " rejected!")
 		
-def checkForUpdate():
-	#add check for update code
-	return True
+class PandaBot:
+	
+	def __init__(self, myAWSIoTMQTTShadowClient):
+		self.shadowClient=myAWSIoTMQTTShadowClient.createShadowHandlerWithName("pandaDanceMotor", True) #2nd arg is persistent subscribe
+		self.motorStatus=0
+		
+	def updateMotorDesiredStatus(self,motorStatus):
+		self.motorStatus=motorStatus
+		JSONPayload = '{"state":{"desired":{"motor":' + str(self.motorStatus) + '}}}'
+		self.shadowClient.shadowUpdate(JSONPayload, customShadowCallback_Update, 5)
 
-def pubsub(host,rootCAPath,certificatePath,privateKeyPath):
+	def turnOnMotor():
+		updateMotorDesiredStatus(1)
+
+	def turnOffMotor():
+		updateMotorDesiredStatus(0)
+
+	def listen(self):
+		# Listen on deltas
+		self.shadowClient.shadowRegisterDeltaCallback(customShadowCallback_Delta)
+
+
+def initialize(host,rootCAPath,certificatePath,privateKeyPath):
 
 	# Configure logging
 	logger = logging.getLogger("AWSIoTPythonSDK.core")
@@ -97,23 +115,18 @@ def pubsub(host,rootCAPath,certificatePath,privateKeyPath):
 	# Connect to AWS IoT
 	myAWSIoTMQTTShadowClient.connect()
 
-	# Create a deviceShadow with persistent subscription
-	Bot = myAWSIoTMQTTShadowClient.createShadowHandlerWithName("pandaDanceMotor", True) #2nd arg is persistent subscribe
+	# Create a deviceShadow with persistent subscription; initialize PandaBot object
+	myPandaBot = PandaBot(myAWSIoTMQTTShadowClient)
 	
-	# Delete shadow JSON doc
-	Bot.shadowDelete(customShadowCallback_Delete, 5)
+	# Delete shadow
+	myPandaBot.shadowClient.shadowDelete(customShadowCallback_Delete, 5)
 	
-	# Listen on deltas
-	Bot.shadowRegisterDeltaCallback(customShadowCallback_Delta)
+	# Set motor off in shadow
+	myPandaBot.updateMotorDesiredStatus(0)
 	
-	update=False
-	while True:
-		time.sleep(1)
-		if checkForUpdate() is True:
-			JSONPayload = '{"state":{"desired":{"motor":' + str(1) + '}}}'
-			Bot.shadowUpdate(JSONPayload, customShadowCallback_Update, 5)
-			time.sleep(1)
-
+	return myPandaBot
+	
+	
 
 
 #if __name__ == "__main__":
