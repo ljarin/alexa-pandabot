@@ -28,7 +28,7 @@ import getopt
 # {
 #	"state": {
 #		"desired":{
-#			"property":<INT VALUE>
+#			"motor":<INT VALUE>
 #		}
 #	}
 #}
@@ -40,9 +40,37 @@ def customShadowCallback_Delta(payload, responseStatus, token):
 	print(responseStatus)
 	payloadDict = json.loads(payload)
 	print("++++++++DELTA++++++++++")
-	print("property: " + str(payloadDict["state"]["property"]))
+	print("motor: " + str(payloadDict["state"]["motor"]))
 	print("version: " + str(payloadDict["version"]))
 	print("+++++++++++++++++++++++\n\n")
+	
+def customShadowCallback_Update(payload, responseStatus, token):
+	# payload is a JSON string ready to be parsed using json.loads(...)
+	# in both Py2.x and Py3.x
+	if responseStatus == "timeout":
+		print("Update request " + token + " time out!")
+	if responseStatus == "accepted":
+		payloadDict = json.loads(payload)
+		print("~~~~~~~~~~~~~~~~~~~~~~~")
+		print("Update request with token: " + token + " accepted!")
+		print("motor: " + str(payloadDict["state"]["desired"]["motor"]))
+		print("~~~~~~~~~~~~~~~~~~~~~~~\n\n")
+	if responseStatus == "rejected":
+		print("Update request " + token + " rejected!")
+
+def customShadowCallback_Delete(payload, responseStatus, token):
+	if responseStatus == "timeout":
+		print("Delete request " + token + " time out!")
+	if responseStatus == "accepted":
+		print("~~~~~~~~~~~~~~~~~~~~~~~")
+		print("Delete request with token: " + token + " accepted!")
+		print("~~~~~~~~~~~~~~~~~~~~~~~\n\n")
+	if responseStatus == "rejected":
+		print("Delete request " + token + " rejected!")
+		
+def checkForUpdate():
+	#add check for update code
+	return True
 
 def main():# Usage
 	usageInfo = """Usage:
@@ -129,9 +157,10 @@ def main():# Usage
 	logger.addHandler(streamHandler)
 
 	# Init AWSIoTMQTTShadowClient
+    #see aws-iot-device-sdk-python/AWSIoTPythonSDK/core/shadow
 	myAWSIoTMQTTShadowClient = None
 	if useWebsocket:
-		myAWSIoTMQTTShadowClient = AWSIoTMQTTShadowClient("basicShadowDeltaListener", useWebsocket=True)
+		myAWSIoTMQTTShadowClient = AWSIoTMQTTShadowClient("basicShadowDeltaListener", useWebsocket=True) 
 		myAWSIoTMQTTShadowClient.configureEndpoint(host, 443)
 		myAWSIoTMQTTShadowClient.configureCredentials(rootCAPath)
 	else:
@@ -148,15 +177,23 @@ def main():# Usage
 	myAWSIoTMQTTShadowClient.connect()
 
 	# Create a deviceShadow with persistent subscription
-	Bot = myAWSIoTMQTTShadowClient.createShadowHandlerWithName("Bot", True)
-
+	Bot = myAWSIoTMQTTShadowClient.createShadowHandlerWithName("pandaDanceMotor", True) #2nd arg is persistent subscribe
+	
+	# Delete shadow JSON doc
+	Bot.shadowDelete(customShadowCallback_Delete, 5)
+	
 	# Listen on deltas
 	Bot.shadowRegisterDeltaCallback(customShadowCallback_Delta)
-
-	# Loop forever
+	
+	update=False
 	while True:
 		time.sleep(1)
-			
+		if checkForUpdate() is True:
+			JSONPayload = '{"state":{"desired":{"motor":' + str(1) + '}}}'
+			Bot.shadowUpdate(JSONPayload, customShadowCallback_Update, 5)
+			time.sleep(1)
+
+
 
 if __name__ == "__main__":
 	main()
