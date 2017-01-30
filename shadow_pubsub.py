@@ -20,7 +20,6 @@ import sys
 import logging
 import time
 import json
-import getopt
 
 # Shadow JSON schema:
 #
@@ -37,13 +36,23 @@ import getopt
 def customShadowCallback_Delta(payload, responseStatus, token):
 	# payload is a JSON string ready to be parsed using json.loads(...)
 	# in both Py2.x and Py3.x
-	print(responseStatus)
+	print("Delta request " + responseStatus)
 	payloadDict = json.loads(payload)
 	print("++++++++DELTA++++++++++")
 	print("motor: " + str(payloadDict["state"]["motor"]))
 	print("version: " + str(payloadDict["version"]))
 	print("+++++++++++++++++++++++\n\n")
-	
+
+def customShadowCallback_Get(payload, responseStatus, token):
+	# payload is a JSON string ready to be parsed using json.loads(...)
+	# in both Py2.x and Py3.x
+	print("Get request " + responseStatus)
+	payloadDict = json.loads(payload)
+	print("+++++++++ShadowGet+++++++++++")
+	print("motor: " + str(payloadDict["state"]["desired"]["motor"]))
+	print("version: " + str(payloadDict["version"]))
+	print("+++++++++++++++++++++++\n\n")
+		
 def customShadowCallback_Update(payload, responseStatus, token):
 	# payload is a JSON string ready to be parsed using json.loads(...)
 	# in both Py2.x and Py3.x
@@ -71,7 +80,8 @@ def customShadowCallback_Delete(payload, responseStatus, token):
 class PandaBot:
 	
 	def __init__(self, myAWSIoTMQTTShadowClient):
-		self.shadowClient=myAWSIoTMQTTShadowClient.createShadowHandlerWithName("pandaDanceMotor", True) #2nd arg is persistent subscribe
+		#Create a deviceShadow with persistent subscription
+		self.shadowClient=myAWSIoTMQTTShadowClient.createShadowHandlerWithName("pandaDanceMotor", True) 
 		self.motorStatus=0
 		
 	def updateMotorDesiredStatus(self,motorStatus):
@@ -79,15 +89,18 @@ class PandaBot:
 		JSONPayload = '{"state":{"desired":{"motor":' + str(self.motorStatus) + '}}}'
 		self.shadowClient.shadowUpdate(JSONPayload, customShadowCallback_Update, 5)
 
-	def turnOnMotor():
-		updateMotorDesiredStatus(1)
+	def turnOnMotor(self):
+		self.updateMotorDesiredStatus(1)
 
-	def turnOffMotor():
-		updateMotorDesiredStatus(0)
+	def turnOffMotor(self):
+		self.updateMotorDesiredStatus(0)
 
-	def listen(self):
+	def deltaGetShadow(self):
 		# Listen on deltas
 		self.shadowClient.shadowRegisterDeltaCallback(customShadowCallback_Delta)
+		
+	def getShadow(self):
+		self.shadowClient.shadowGet(customShadowCallback_Get, 5)
 
 
 def initialize(host,rootCAPath,certificatePath,privateKeyPath):
@@ -115,14 +128,19 @@ def initialize(host,rootCAPath,certificatePath,privateKeyPath):
 	# Connect to AWS IoT
 	myAWSIoTMQTTShadowClient.connect()
 
-	# Create a deviceShadow with persistent subscription; initialize PandaBot object
+	# initialize PandaBot object
 	myPandaBot = PandaBot(myAWSIoTMQTTShadowClient)
 	
 	# Delete shadow
 	myPandaBot.shadowClient.shadowDelete(customShadowCallback_Delete, 5)
-	
+		
 	# Set motor off in shadow
 	myPandaBot.updateMotorDesiredStatus(0)
+	
+	# Get as a sanity check
+	myPandaBot.getShadow()
+	
+	print("Initialization complete")
 	
 	return myPandaBot
 	
