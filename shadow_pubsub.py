@@ -62,7 +62,10 @@ def customShadowCallback_Update(payload, responseStatus, token):
 		payloadDict = json.loads(payload)
 		print("~~~~~~~~~~~~~~~~~~~~~~~")
 		print("Update request with token: " + token + " accepted!")
-		print("motor: " + str(payloadDict["state"]["desired"]["motor"]))
+		if 'reported' in payload: state_modifier='reported'
+		elif 'desired' in payload: state_modifiter='desired'
+		else: state_modifier = 'error'
+		print("motor: " + str(payloadDict["state"][state_modifier]["motor"]))
 		print("~~~~~~~~~~~~~~~~~~~~~~~\n\n")
 	if responseStatus == "rejected":
 		print("Update request " + token + " rejected!")
@@ -77,33 +80,8 @@ def customShadowCallback_Delete(payload, responseStatus, token):
 	if responseStatus == "rejected":
 		print("Delete request " + token + " rejected!")
 		
-class PandaBot:
-	
-	def __init__(self, myAWSIoTMQTTShadowClient):
-		#Create a deviceShadow with persistent subscription
-		self.shadowClient=myAWSIoTMQTTShadowClient.createShadowHandlerWithName("pandaDanceMotor", True) 
-		self.motorStatus=0
-		
-	def updateMotorDesiredStatus(self,motorStatus):
-		self.motorStatus=motorStatus
-		JSONPayload = '{"state":{"desired":{"motor":' + str(self.motorStatus) + '}}}'
-		self.shadowClient.shadowUpdate(JSONPayload, customShadowCallback_Update, 5)
 
-	def turnOnMotor(self):
-		self.updateMotorDesiredStatus(1)
-
-	def turnOffMotor(self):
-		self.updateMotorDesiredStatus(0)
-
-	def deltaGetShadow(self):
-		# Listen on deltas
-		self.shadowClient.shadowRegisterDeltaCallback(customShadowCallback_Delta)
-		
-	def getShadow(self):
-		self.shadowClient.shadowGet(customShadowCallback_Get, 5)
-
-
-def initialize(host,rootCAPath,certificatePath,privateKeyPath):
+def make_shadow_client(host,rootCAPath,certificatePath,privateKeyPath):
 
 	# Configure logging
 	logger = logging.getLogger("AWSIoTPythonSDK.core")
@@ -128,21 +106,9 @@ def initialize(host,rootCAPath,certificatePath,privateKeyPath):
 	# Connect to AWS IoT
 	myAWSIoTMQTTShadowClient.connect()
 
-	# initialize PandaBot object
-	myPandaBot = PandaBot(myAWSIoTMQTTShadowClient)
+	print("Shadow client initialization complete")
 	
-	# Delete shadow
-	myPandaBot.shadowClient.shadowDelete(customShadowCallback_Delete, 5)
-		
-	# Set motor off in shadow
-	myPandaBot.updateMotorDesiredStatus(0)
-	
-	# Get as a sanity check
-	myPandaBot.getShadow()
-	
-	print("Initialization complete")
-	
-	return myPandaBot
+	return myAWSIoTMQTTShadowClient
 	
 	
 
