@@ -1,15 +1,12 @@
 #!/usr/bin/env python
 
 from shadow_pubsub import *
+from setup_environment import endpoint,rootCA,cert,key
 import os.path
 #import RPi.GPIO as GPIO
 
 # Requires certificate directory containing root-CA.crt, pandaDanceMotor.cert.pem, and pandaDanceMotor.private.key
-home=os.path.expanduser('~')
-endpoint='a2rig0317k0i1k.iot.us-east-1.amazonaws.com'
-rootCA=home+'/pandabot/certificate/root-CA.crt'
-cert=home+'/pandabot/certificate/pandaDanceMotor.cert.pem'
-key=home+'/pandabot/certificate/pandaDanceMotor.private.key'
+
 
 class PandaBot:
 	
