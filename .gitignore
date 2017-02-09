@@ -1,2 +1,4 @@
 *.pyc
-/certificate/*
+/iot/certificate/*
+/iot/iot_endpoint_name.py
+/lambda/iam_credentials.csv

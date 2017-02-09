@@ -1,0 +1,10 @@
+{
+  "intents": [
+    {
+      "intent": "PandaBotDanceIntent"
+    },
+    {
+      "intent": "AMAZON.HelpIntent"
+    }
+  ]
+}

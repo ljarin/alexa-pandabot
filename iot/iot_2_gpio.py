@@ -1,16 +1,21 @@
 #!/usr/bin/env python
 
 from shadow_pubsub import *
-from setup_environment import endpoint,rootCA,cert,key
+from iot_endpoint_name import endpoint
 import os.path
-import RPi.GPIO as GPIO
+#import RPi.GPIO as GPIO
 
-# Requires certificate directory containing root-CA.crt, pandaDanceMotor.cert.pem, and pandaDanceMotor.private.key
+# Requires certificate directory containing root-CA.crt, pandaDanceMotor.cert.pem, and pandaDanceMotor.private.key, and iot_endpoint_name.py setting endpoint name
 
 
 class PandaBot:
 	
 	def __init__(self):
+		
+		home=os.path.expanduser('~')
+		rootCA=home+'/pandabot/certificate/root-CA.crt'
+		cert=home+'/pandabot/certificate/pandaDanceMotor.cert.pem'
+		key=home+'/pandabot/certificate/pandaDanceMotor.private.key'
 		
 		#Create a deviceShadow with persistent subscription
 		myAWSIoTMQTTShadowClient=make_shadow_client(endpoint,rootCA,cert,key)
@@ -48,5 +53,7 @@ myPandaBot = PandaBot()
 time.sleep(5)
 myPandaBot.turnOnMotor()
 time.sleep(5)
+myPandaBot.turnOffMotor()
+
 #~ while True:
 	#~ myPandaBot.deltaGetShadow()
