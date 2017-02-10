@@ -3,12 +3,9 @@ Created on Jan 21, 2017
 
 @author: Laura
 
-This sample demonstrates a simple skill built with the Amazon Alexa Skills Kit.
-The Intent Schema, Custom Slots, and Sample Utterances for this skill, as well
-as testing instructions are located at http://amzn.to/1LzFrj6
-
-For additional samples, visit the Alexa Skills Kit Getting Started guide at
-http://amzn.to/1LGWsLG
+Alexa skill implemented in Python. The skill interprets Alexa intents, and sends out corresponding updates to the Amazon IOT Shadow
+of the "pandaDanceMotor" Thing. 
+General structure taken from the myFavoriteColor sample Lambda function. 
 '''
 
 from __future__ import print_function
@@ -27,8 +24,8 @@ def build_speechlet_response(title, output, reprompt_text, should_end_session):
         },
         'card': {
             'type': 'Simple',
-            'title': "SessionSpeechlet - " + title,
-            'content': "SessionSpeechlet - " + output
+            'title': title,
+            'content': output
         },
         'reprompt': {
             'outputSpeech': {
@@ -61,7 +58,7 @@ def get_welcome_response():
                     "Ask me to dance."
     # If the user either does not reply to the welcome message or says something
     # that is not understood, they will be prompted again with this text.
-    reprompt_text = "You can say, let's dance. " 
+    reprompt_text = "You can say, let's dance." 
     should_end_session = False
     return build_response(session_attributes, build_speechlet_response(
         card_title, speech_output, reprompt_text, should_end_session))
@@ -75,58 +72,18 @@ def handle_session_end_request():
     return build_response({}, build_speechlet_response(
         card_title, speech_output, None, should_end_session))
 
-
-def create_favorite_color_attributes(favorite_color):
-    return {"favoriteColor": favorite_color}
-
-
-def set_color_in_session(intent, session):
-    """ Sets the color in the session and prepares the speech to reply to the
-    user.
-    """
-
-    card_title = intent['name']
-    session_attributes = {}
-    should_end_session = False
-
-    if 'Color' in intent['slots']:
-        favorite_color = intent['slots']['Color']['value']
-        session_attributes = create_favorite_color_attributes(favorite_color)
-        speech_output = "I now know your favorite color is " + \
-                        favorite_color + \
-                        ". You can ask me your favorite color by saying, " \
-                        "what's my favorite color?"
-        reprompt_text = "You can ask me your favorite color by saying, " \
-                        "what's my favorite color?"
-    else:
-        speech_output = "I'm not sure what your favorite color is. " \
-                        "Please try again."
-        reprompt_text = "I'm not sure what your favorite color is. " \
-                        "You can tell me your favorite color by saying, " \
-                        "my favorite color is red."
-    return build_response(session_attributes, build_speechlet_response(
-        card_title, speech_output, reprompt_text, should_end_session))
-
-
-def get_color_from_session(intent, session):
-    session_attributes = {}
-    reprompt_text = None
-
-    if session.get('attributes', {}) and "favoriteColor" in session.get('attributes', {}):
-        favorite_color = session['attributes']['favoriteColor']
-        speech_output = "Your favorite color is " + favorite_color + \
-                        ". Goodbye."
-        should_end_session = True
-    else:
-        speech_output = "I'm not sure what your favorite color is. " \
-                        "You can say, my favorite color is red."
-        should_end_session = False
-
-    # Setting reprompt_text to None signifies that we do not want to reprompt
-    # the user. If the user does not respond or says something that is not
-    # understood, the session will end.
-    return build_response(session_attributes, build_speechlet_response(
-        intent['name'], speech_output, reprompt_text, should_end_session))
+def set_panda_dance():
+	'''
+	Open up IOT client. AWS_ACCESS_KEY_ID_IOT and AWS_SECRET_ACCESS_KEY_IOT must be set up as enviornment variables on the Amazon Lambda site, or put the .csv file in ~/.aws/credentials if using locally.
+	Set environment variable lambda as true in lambda site, and as false in local machine
+	'''
+	if (os.environ["lambda"]=="true"):
+	    client = boto3.client("iot-data",region_name="us-east-1",aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID_IOT"], aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY_IOT"]) #Actual lambda usage
+	else:
+		client = boto3.client("iot-data",region_name="us-east-1") #Local usage
+	shadow=client.get_thing_shadow(thingName='pandaDanceMotor')
+	print(shadow['payload'].read())	
+	
 
 
 # --------------- Events ------------------
@@ -157,10 +114,11 @@ def on_intent(intent_request, session):
 
     intent = intent_request['intent']
     intent_name = intent_request['intent']['name']
+    print('Intent Name ' + intent_name)
 
     # Dispatch to your skill's intent handlers
     if intent_name == "PandaBotDanceIntent":
-        return get_welcome_response()#set_color_in_session(intent, session)
+        return set_panda_dance()
     elif intent_name == "AMAZON.HelpIntent":
         return get_welcome_response()
     elif intent_name == "AMAZON.CancelIntent" or intent_name == "AMAZON.StopIntent":
@@ -182,16 +140,12 @@ def on_session_ended(session_ended_request, session):
 # --------------- Main handler ------------------
 
 def lambda_handler(event, context):
-	'''
-	Open up IOT client. AWS_ACCESS_KEY_ID_IOT and AWS_SECRET_ACCESS_KEY_IOT must be set up as enviornment variables on the Amazon Lambda site.
-	'''
-	client = boto3.client("iot-data",region_name="us-east-1",aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID_IOT"], aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY_IOT"])
-	client.get_thing_shadow(thingName='pandaDanceMotor')	
 	""" Route the incoming request based on type (LaunchRequest, IntentRequest,
 	etc.) The JSON body of the request is provided in the event parameter.
 	"""
 	print("event.session.application.applicationId=" +
 		  event['session']['application']['applicationId'])
+	print ('Request Type ' + event['request']['type'])
 
 	"""
 	Uncomment this if statement and populate with your skill's application ID to
@@ -205,7 +159,6 @@ def lambda_handler(event, context):
 	if event['session']['new']:
 		on_session_started({'requestId': event['request']['requestId']},
 						   event['session'])
-
 	if event['request']['type'] == "LaunchRequest":
 		return on_launch(event['request'], event['session'])
 	elif event['request']['type'] == "IntentRequest":

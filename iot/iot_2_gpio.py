@@ -13,9 +13,9 @@ class PandaBot:
 	def __init__(self):
 		
 		home=os.path.expanduser('~')
-		rootCA=home+'/pandabot/certificate/root-CA.crt'
-		cert=home+'/pandabot/certificate/pandaDanceMotor.cert.pem'
-		key=home+'/pandabot/certificate/pandaDanceMotor.private.key'
+		rootCA=home+'/pandabot/iot/certificate/root-CA.crt'
+		cert=home+'/pandabot/iot/certificate/pandaDanceMotor.cert.pem'
+		key=home+'/pandabot/iot/certificate/pandaDanceMotor.private.key'
 		
 		#Create a deviceShadow with persistent subscription
 		myAWSIoTMQTTShadowClient=make_shadow_client(endpoint,rootCA,cert,key)
@@ -23,6 +23,12 @@ class PandaBot:
 			
 		# Delete stored shadow upon initializing
 		self.shadowClient.shadowDelete(customShadowCallback_Delete, 5)
+		
+		#Create shadow with desired and reported state as motor off
+		JSONPayload = '{"state":{"desired":{"motor":0}}}'
+		self.shadowClient.shadowUpdate(JSONPayload, customShadowCallback_Update, 5)
+		JSONPayload = '{"state":{"reported":{"motor":0}}}'
+		self.shadowClient.shadowUpdate(JSONPayload, customShadowCallback_Update, 5)
 
 		self.motor_GPIO=18
 		GPIO.setmode(GPIO.BOARD)
