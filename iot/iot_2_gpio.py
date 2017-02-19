@@ -36,14 +36,14 @@ class PandaBot:
 			GPIO.setmode(GPIO.BOARD)
 			GPIO.setup(self.motor_GPIO, GPIO.OUT,initial=GPIO.LOW)
 		
-	def updateMotorStatus(self,motorStatus,state_modifier='reported'):
+	def updateMotorStatus(self,motorDesiredStatus,state_modifier='reported'):
 		if not self.test_mode:
 			if motorStatus:
 				GPIO.output(self.motor_GPIO,GPIO.HIGH)
 			else:
 				GPIO.output(self.motor_GPIO,GPIO.LOW)
-		JSONPayload = '{"state":{"desired":{"motor":' + str(motorStatus) + '}}}'
-		JSONPayload = '{"state":{"'+state_modifier+'":{"motor":' + str(motorStatus) + '}}}'
+		#JSONPayload = '{"state":{"desired":{"motor":' + str(motorStatus) + '}}}'
+		JSONPayload = '{"state":{"'+state_modifier+'":{"motor":' + str(motorDesiredStatus) + '},"desired":{"motor":' + str(motorDesiredStatus) + '}}}'
 		self.shadowClient.shadowUpdate(JSONPayload, self.callbacks.customShadowCallback_Update, 5)
 	def turnOnMotor(self):
 		self.updateMotorStatus(1)
@@ -66,10 +66,16 @@ class PandaBot:
 		self.callbacks.getStatus=0
 		return myPandaBot.callbacks.getPayload
 
-
-
 myPandaBot = PandaBot(test_mode=True)
-print(myPandaBot.getShadow())
-myPandaBot.turnOnMotor()
-print(myPandaBot.getShadow())
+shadow={}
+while True:
+	shadow=myPandaBot.getShadow()
+	time.sleep(5)
+	if shadow["state"]["desired"]["motor"] is 1:
+		myPandaBot.turnOnMotor()
+		time.sleep(5)
+		myPandaBot.turnOffMotor()
+#print(myPandaBot.getShadow())
+#myPandaBot.turnOnMotor()
+#print(myPandaBot.getShadow())
 	
