@@ -69,12 +69,15 @@ class PandaBot:
 myPandaBot = PandaBot(test_mode=True)
 shadow={}
 while True:
-	shadow=myPandaBot.getShadow()
-	time.sleep(5)
-	if shadow["state"]["desired"]["motor"] is 1:
+	delta_shadow=myPandaBot.deltaGetShadow()
+	if delta_shadow["state"]["motor"] is 1:
 		myPandaBot.turnOnMotor()
 		time.sleep(5)
 		myPandaBot.turnOffMotor()
+	#if shadow["state"]["desired"]["motor"] is 1:
+		#myPandaBot.turnOnMotor()
+		#time.sleep(5)
+		#myPandaBot.turnOffMotor()
 #print(myPandaBot.getShadow())
 #myPandaBot.turnOnMotor()
 #print(myPandaBot.getShadow())
