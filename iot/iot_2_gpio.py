@@ -10,7 +10,7 @@ from shadow_pubsub import *
 from iot_endpoint_name import endpoint
 import os.path
 import time
-#import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 
 class PandaBot:
 	
@@ -38,7 +38,7 @@ class PandaBot:
 		
 	def updateMotorStatus(self,motorDesiredStatus,state_modifier='reported'):
 		if not self.test_mode:
-			if motorStatus:
+			if motorDesiredStatus:
 				GPIO.output(self.motor_GPIO,GPIO.HIGH)
 			else:
 				GPIO.output(self.motor_GPIO,GPIO.LOW)
@@ -66,7 +66,7 @@ class PandaBot:
 		self.callbacks.getStatus=0
 		return myPandaBot.callbacks.getPayload
 
-myPandaBot = PandaBot(test_mode=True)
+myPandaBot = PandaBot(test_mode=False)
 shadow={}
 while True:
 	delta_shadow=myPandaBot.deltaGetShadow()
