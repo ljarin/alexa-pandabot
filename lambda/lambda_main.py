@@ -6,6 +6,8 @@ Created on Jan 21, 2017
 Alexa skill implemented in Python. The skill interprets Alexa intents, and sends out corresponding updates to the Amazon IOT Shadow
 of the "pandaDanceMotor" Thing. 
 General structure taken from the myFavoriteColor sample Lambda function. 
+AWS_ACCESS_KEY_ID_IOT and AWS_SECRET_ACCESS_KEY_IOT must be set up as enviornment variables on the Amazon Lambda site, or put the .csv file in ~/.aws/credentials if using locally.
+Set environment variable lambda as true in lambda site, and as false in local machine
 '''
 
 from __future__ import print_function
@@ -83,6 +85,12 @@ def set_panda_dance():
 		client = boto3.client("iot-data",region_name="us-east-1") #Local usage
 	shadow=client.get_thing_shadow(thingName='pandaDanceMotor')
 	print(shadow['payload'].read())	
+	JSONPayload = '{"state":{"desired":{"motor":1}}}'
+	response = client.update_thing_shadow(
+		thingName='pandaDanceMotor',
+		payload=JSONPayload
+	)
+	print(response['payload'].read())
 	
 
 
